@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>分析</title>
+    <link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+    <script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+    <script type="text/javascript" src="/resources/bug-utils.js"></script>
+    <script src="https://cdn.bootcss.com/echarts/4.6.0/echarts.min.js"></script>
+    <script type="text/javascript">
+    var projectId = getQueryParam("pId");
+    layui.use(['layer'], function () {
+    	var $ = layui.jquery;
+    	//状态饼图
+    	statePieOption = {
+		    title: {
+		        text: '状态',
+		        left: 'center',
+		        show:false
+		    },
+		    tooltip: {
+		        trigger: 'item',
+		        formatter: '{a} <br/>{b} : {c} ({d}%)'
+		    },
+		    legend: {
+		        top: 'top',
+		    	orient: 'horizontal',
+		        data: ['开启','解决','驳回','关闭']
+		    },
+		    series: [
+		    	{
+		    		name:'全部',
+		    		type:'pie',
+		    		radius:'20%',
+		    		center:['50%', '50%'],
+		    		data:[{name:'全部', value:0}],
+		    		label:{
+		    			formatter: '{c}',
+		                position:'center',
+		                color:'#000',
+		                fontSize:20
+		    		},
+		    		color:'#fff'
+		    	},
+		        {
+		            name: '状态',
+		            type: 'pie',
+		            radius: ['20%', '55%'],
+		            center: ['50%', '50%'],
+		            data: [{name:'开启',value:0},{name:'解决',value:0},{name:'驳回',value:0},{name:'关闭',value:0}],
+		            emphasis: {
+		                itemStyle: {
+		                    shadowBlur: 10,
+		                    shadowOffsetX: 0,
+		                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+		                }
+		            },
+		            label:{
+		            	formatter: '{b}: {c} ({d}%)'
+		            },
+		            itemStyle:{
+		            	color:function(params){
+			            	return ['#66CD00','#63B8FF','#F08080','#C1C1C1'][params.dataIndex];
+		            	}
+		            }
+		        }
+		    ]
+		};
+    	//级别饼图
+    	levelPieOption = {
+		    title: {
+		        text: '级别',
+		        left: 'center',
+		        show:false
+		    },
+		    tooltip: {
+		        trigger: 'item',
+		        formatter: '{a} <br/>{b} : {c} ({d}%)'
+		    },
+		    legend: {
+		        top: 'top',
+		        orient:'horizontal',
+		        data: ['错误','严重','一般','建议']
+		    },
+		    series: [
+		    	{
+		    		name:'全部',
+		    		type:'pie',
+		    		radius:'20%',
+		    		center:['50%', '50%'],
+		    		data:[{name:'全部', value:0}],
+		    		label:{
+		    			formatter: '{c}',
+		                position:'center',
+		                color:'#000',
+		                fontSize:20
+		    		},
+		    		color:'#fff'
+		    	},
+		        {
+		            name: '级别',
+		            type: 'pie',
+		            radius: ['20%', '55%'],
+		            center: ['50%', '50%'],
+		            data: [{name:'错误',value:0},{name:'严重',value:0},{name:'一般',value:0},{name:'建议',value:0}],
+		            emphasis: {
+		                itemStyle: {
+		                    shadowBlur: 10,
+		                    shadowOffsetX: 0,
+		                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+		                }
+		            },
+		            label:{
+		            	formatter: '{b}: {c} ({d}%)'
+		            },
+		            itemStyle:{
+		            	color:function(params){
+			            	return ['#FF5722','#FFB800','#1E9FFF','#5FB878'][params.dataIndex];
+		            	}
+		            }
+		        }
+		    ]
+		};
+    	//拆线图配置
+    	var lineChartsOption = {
+   			title: {
+   		        text: '状态拆线图',
+   		        show:false
+   		    },
+   		    tooltip: {
+   		        trigger: 'axis'
+   		    },
+   		    legend: {
+   		        data: ['错误', '严重', '一般', '建议']
+   		    },
+   		    grid: {
+   		        left: '3%',
+   		        right: '4%',
+   		        bottom: '3%',
+   		        containLabel: true
+   		    },
+   		    xAxis: {
+   		        type: 'category',
+   		        boundaryGap: false,
+   		        data: ['开启', '解决', '驳回', '关闭']
+   		    },
+   		    yAxis: {
+   		        type: 'value'
+   		    },
+   		    color:['#FF5722','#FFB800','#1E9FFF','#5FB878'],
+   		    series: [
+   		        {
+   		            name: '错误',
+   		            type: 'line',
+   		            stack: '总量',
+   		         	areaStyle: {},
+   		            data: [0, 0, 0, 0]
+   		        },
+   		        {
+   		            name: '严重',
+   		            type: 'line',
+   		            stack: '总量',
+   		         	areaStyle: {},
+   		         	data: [0, 0, 0, 0]
+   		        },
+   		        {
+   		            name: '一般',
+   		            type: 'line',
+   		            stack: '总量',
+   		         	areaStyle: {},
+   		         	data: [0, 0, 0, 0]
+   		        },
+   		        {
+   		            name: '建议',
+   		            type: 'line',
+   		            stack: '总量',
+   		         	areaStyle: {},
+   		         	data: [0, 0, 0, 0]
+   		        }
+   		    ]
+    	};
+    	var statePieCharts = echarts.init(document.getElementById('state-pie'));
+    	var levelPieCharts = echarts.init(document.getElementById('level-pie'));
+    	var lineCharts = echarts.init(document.getElementById('line-charts'));
+    	$.get(`/bug/stats/${projectId}`, {} , function(res){
+    		if(res.code == 0){
+    			var data = res.data;
+    			var o = data['OPEN'], 
+	    			r = data['REJECT'], 
+	    			f = data['FIXED'], 
+	    			c = data['CLOSED'];
+    			var sum = o.reduce((a, c) => a + c) 
+		    			+ r.reduce((a, c) => a + c) 
+		    			+ f.reduce((a, c) => a + c) 
+		    			+ c.reduce((a, c) => a + c); 
+    			//状态饼
+    			statePieOption.series[0].data = [
+    				{name:'全部', value:sum}
+    			];
+    			statePieOption.series[1].data = [
+    				{name:'开启',value:o.reduce((a, c) => a + c)},
+    				{name:'解决',value:r.reduce((a, c) => a + c)},
+    				{name:'驳回',value:f.reduce((a, c) => a + c)},
+    				{name:'关闭',value:c.reduce((a, c) => a + c)}
+    			];
+    			
+    			statePieCharts.setOption(statePieOption);
+    			//级别饼
+    			levelPieOption.series[0].data = [
+    				{name:'全部', value:sum}
+    			];
+    			levelPieOption.series[1].data = [
+    				{name:'错误',value:o[0]+r[0]+f[0]+c[0]},
+    				{name:'严重',value:o[1]+r[1]+f[1]+c[1]},
+    				{name:'一般',value:o[2]+r[2]+f[2]+c[2]},
+    				{name:'建议',value:o[3]+r[3]+f[3]+c[3]}
+    			];
+    			levelPieCharts.setOption(levelPieOption);
+    			//线图
+    			lineChartsOption.series[0].data = [o[0],r[0],f[0],c[0]];
+    			lineChartsOption.series[1].data = [o[1],r[1],f[1],c[1]];
+    			lineChartsOption.series[2].data = [o[2],r[2],f[2],c[2]];
+    			lineChartsOption.series[3].data = [o[3],r[3],f[3],c[3]];
+		        lineCharts.setOption(lineChartsOption);
+    		}else{
+    			layer.alert(res.msg);
+    		}
+    	}, "json");
+    	//监听窗口大小变化
+    	$(window).resize(function(){ 
+    		statePieCharts.resize();
+    		levelPieCharts.resize();
+    		lineCharts.resize();
+    	});
+    });
+    </script>
+    <style type="text/css">
+    	html,body{
+    		height: 100%;
+    	}
+    	.layui-fluid{
+    		height: 100%;
+    		box-sizing: border-box;
+    		padding: 20px 0px 0px 0px;
+    	}
+    	.layui-col-md6{
+    		height: 100%;
+    	}
+    </style>
+</head>
+<body>
+<div class="layui-fluid">
+	<div class="layui-row" style="height: 50%;">
+		<div class="layui-col-md6" id="state-pie">
+		</div>
+		<div class="layui-col-md6" id="level-pie">
+		</div>
+	</div>
+	<div id="line-charts" class="layui-row" style="height: 50%;">
+		
+	</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.ProjectUserRoleMapper" >
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.ProjectUserRole" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="projectId" property="projectId" jdbcType="CHAR" />
+    <result column="role" property="role" jdbcType="VARCHAR" />
+  </resultMap>
+
+  <resultMap id="BaseResultMapVo" extends="BaseResultMap" type="com.github.wephotos.bughub.entity.vo.ProjectUserRoleVo">
+    <id column="userName" property="userName" jdbcType="VARCHAR" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    id, userId, projectId, role
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from project_user_role
+    where id = #{id,jdbcType=CHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from project_user_role
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.ProjectUserRole" >
+    insert into project_user_role (id, userId, projectId,role)
+    values (#{id,jdbcType=CHAR}, #{userId,jdbcType=CHAR}, #{projectId,jdbcType=CHAR},#{role,jdbcType=VARCHAR})
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.ProjectUserRole" >
+    update project_user_role
+    <set >
+      <if test="userId != null" >
+        userId = #{userId,jdbcType=CHAR},
+      </if>
+      <if test="projectId != null" >
+        projectId = #{projectId,jdbcType=CHAR},
+      </if>
+      <if test="role != null" >
+        role = #{role,jdbcType=VRACHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+  <!-- 获取项目下所有用户角色 -->
+  <select id="listByProjectId" resultMap="BaseResultMap" parameterType="java.lang.String">
+    select 
+    <include refid="Base_Column_List" />
+    from project_user_role
+    where projectId = #{projectId,jdbcType=CHAR}
+  </select>
+  
+  <!-- 删除用户在项目中的角色 -->
+  <delete id="deleteByPur" parameterType="com.github.wephotos.bughub.entity.ProjectUserRole">
+    delete from project_user_role
+    where
+    projectId = #{projectId,jdbcType=CHAR}
+    and
+    userId = #{userId,jdbcType=CHAR}
+    and
+    role = #{role,jdbcType=VARCHAR}
+  </delete>
+  
+  <!-- 删除项目下所有用户角色 -->
+  <delete id="deleteByProjectId" parameterType="java.lang.String">
+  	delete from project_user_role
+    where
+    projectId = #{projectId,jdbcType=CHAR}
+  </delete>
+  
+  <!-- 批量插入 -->
+  <insert id="insertBatch" parameterType="com.github.wephotos.bughub.entity.ProjectUserRole" >
+    insert into project_user_role (id, userId, projectId, role)
+    values 
+    <foreach item="item" collection="data" separator=",">
+      (#{item.id,jdbcType=CHAR}, #{item.userId,jdbcType=CHAR}, 
+       #{item.projectId,jdbcType=CHAR},#{item.role,jdbcType=VARCHAR})
+    </foreach>
+  </insert>
+  <!-- 查询项目指定角色人员 -->
+  <select id="listProjectUser" resultMap="BaseResultMapVo">
+    SELECT
+    	pur.id, 
+    	pur.userId,
+    	pur.projectId,
+    	pur.role,
+    	u.name userName
+    FROM
+    	hub_user u,
+    	project_user_role pur
+    WHERE 
+	    u.id = pur.userId
+	    and 
+	    u.roles = pur.role
+	    AND 
+	    pur.projectId = #{projectId}
+	    AND 
+	    u.roles = #{role}
+  </select>
+  <!-- 获取用户在项目中的角色 -->
+  <select id="listUserRole" resultMap="BaseResultMap">
+  	select 
+      <include refid="Base_Column_List" />
+      from project_user_role
+    where 
+      userId = #{userId,jdbcType=CHAR}
+      and
+      projectId = #{projectId,jdbcType=CHAR}
+  </select>
+</mapper>

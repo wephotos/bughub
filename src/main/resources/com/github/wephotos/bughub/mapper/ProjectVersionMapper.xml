@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.ProjectVersionMapper" >
+
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.ProjectVersion" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="version" property="version" jdbcType="VARCHAR" />
+    <result column="projectId" property="projectId" jdbcType="CHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+  <resultMap id="BaseResultMapVo" extends="BaseResultMap" type="com.github.wephotos.bughub.entity.vo.ProjectVersionVo" >
+    <collection property="files" column="id" select="com.github.wephotos.bughub.mapper.HubFileMapper.list" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    id, version, projectId, description, userId, userName, createTime
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from project_version
+    where id = #{id,jdbcType=CHAR}
+  </select>
+
+  <select id="list" resultMap="BaseResultMapVo">
+    SELECT
+      <include refid="Base_Column_List" />
+    FROM
+      project_version
+    WHERE 
+      projectId = #{projectId,jdbcType=CHAR}
+    ORDER BY createTime DESC
+    limit 0,100
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from project_version
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+  
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.ProjectVersion" >
+    insert into project_version (id, version, projectId, 
+      description, userId, userName, 
+      createTime)
+    values (#{id,jdbcType=CHAR}, #{version,jdbcType=VARCHAR}, #{projectId,jdbcType=CHAR}, 
+      #{description,jdbcType=VARCHAR}, #{userId,jdbcType=CHAR}, #{userName,jdbcType=VARCHAR}, 
+      #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.ProjectVersion" >
+    update project_version
+    <set >
+      <if test="version != null" >
+        version = #{version,jdbcType=VARCHAR},
+      </if>
+      <if test="projectId != null" >
+        projectId = #{projectId,jdbcType=CHAR},
+      </if>
+      <if test="description != null" >
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null" >
+        userId = #{userId,jdbcType=CHAR},
+      </if>
+      <if test="userName != null" >
+        userName = #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        createTime = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+  
+</mapper>

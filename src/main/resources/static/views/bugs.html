@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+    <link rel="stylesheet" href="/resources/bug-image.css">
+    <script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+    <script type="text/javascript" src="/resources/bug-utils.js"></script>
+    <script type="text/javascript" src="/resources/bug-image.js"></script>
+    <title>bug</title>
+    <script type="text/javascript">
+        var projectId = getQueryParam("pId");
+        var tableIns;
+        layui.use(['layer', 'form', 'table', 'upload'], function () {
+            var $ = layui.jquery, layer = layui.layer, form = layui.form, 
+                table = layui.table, upload = layui.upload;
+            tableIns = table.render({
+                elem: '#bug-table'
+                , url: '/bug/pageList' //数据接口
+                , method: 'post'
+                , page: true //开启分页
+                , loading: true
+                , autoSort: false
+                , defaultToolbar: ['filter']
+                , request: {
+                    pageName: 'curr' //页码的参数名称，默认：page
+                    , limitName: 'limit' //每页数据量的参数名，默认：limit
+                }
+            	, where:{
+            		projectId:projectId
+            	}
+                , cols: [[ //表头
+                    {field: 'sort', title: '序号', type: 'numbers', width: 80}
+                    , {field: 'title', title: '标题', style: 'cursor: pointer;', event: 'update', templet:function(d){
+                    	  var color = ['#66CD00','#63B8FF','#F08080','#C1C1C1'][d.state - 1];
+                    	  return `<span style='color:${color};'>${d.title}</span>`;
+                      }}
+                    , {field: 'levelName', title: '级别', width: 100, templet:function(d){
+                    	var color = ['#FF5722','#FFB800','#1E9FFF','#5FB878'][d.level - 1];
+                  	    return `<span style='color:${color};'>${d.levelName}</span>`;
+                      }}
+                    , {field: 'stateName', title: '状态', width: 100}
+                    , {field: 'userName', title: '创建者', width: 100}
+                    , {field: 'owner', title: '归属者', width: 150}
+                    , {field: 'createTime', title: '时间', width: 160, sort: true}
+                ]]
+            });
+			//行点击事件
+            table.on('tool(bug-table)', function (obj) {
+                //获得当前行数据
+                var data = obj.data;
+                if (obj.event === 'update') {
+                    openBugTrack(data.id);
+                }
+            });
+            //监听排序事件
+            table.on('sort(bug-table)', function (obj) {
+                var query = form.val("query-form");
+                var whereData = $.extend({}, query, {
+                	sortField: obj.field,
+                    sortDirection: obj.type
+                });
+                tableIns.reload({
+                    where: whereData
+                });
+            });
+			//新增BUG
+            $("#add").on("click", function() {
+                var index = layer.open({
+                    type: 1,
+                    title: false,
+                    closeBtn:0,
+                    area: ['100%', '100%'],
+                    shade: [0.8, '#393D49'],
+                    content: $("#bug-form"),
+                    success: function(layero, index){
+                    	$("input[name=title]").focus();
+                    	$("input[name='projectId']").val(projectId);
+                    },
+                    cancel: function (index, layero) {
+                        layer.close(index);
+                    },
+                    end: function () {
+                        $("input[name=id]").val("");
+                        $("#bug-form form")[0].reset();
+                        $('.content-img-list-item').remove();
+                    }
+                });
+            });
+
+            //查询事件
+            form.on('submit(query-form)', function (data) {
+            	var query = form.val("query-form");
+                tableIns.reload({
+                    where: query
+                });
+                return false;
+            });
+            
+            //保存BUG
+            form.on('submit(bug-form)', function (data) {
+                var formData = form.val("bug-form");
+                var users = [];
+                $(":checkbox:checked").each(function () {
+                    var othis = $(this);
+                    users.push({
+                        userId: othis.val(),
+                        userName: othis.attr("title"),
+                    });
+                });
+                if(users.length == 0){
+                	layer.msg('请选择归属人');
+                	return false;
+                }
+                formData.users = users;
+                $.ajax({
+                    type: 'post',
+                    url: "/bug/add",
+                    data: JSON.stringify(formData),
+                    dataType: "json",
+                    contentType: "application/json;charset=utf-8",
+                    success: function (res) {
+                        if (res.code == 0) {
+                            layer.closeAll();
+                            tableIns.reload({});
+                        } else {
+                            layer.msg(res.msg);
+                        }
+                    }
+                });
+                return false;
+            });
+			//上传图片
+            upload.render({
+                elem: '#uploadBtn'
+                , url: '/hub-file/upload'
+                , data: {}
+                , done: function (res) {
+                    if (res.code == 0) {
+                    	showFile(res.data);
+                    }else{
+                    	layer.msg(res.msg);
+                    }
+                }
+                , before: function (obj) {
+                    this.data = {owner: $('input[name=id]').val()}
+                }
+                , error: function () {
+                }
+            });
+			//粘贴图片
+			$("form[name=bug-form]").on("paste", function(event){
+				onPasteClipboardImage(event, function(base64){
+					var data = {
+							base64:base64,
+							owner: $('input[name=id]').val()
+					};
+					$.post("/hub-file/upload/base64-image", data, function(res){
+						if(res.code == 0){
+							showFile(res.data);
+						}else{
+							layer.msg(res.msg);
+						}
+					}, "json");
+				});
+			});
+			//显示上传成功的图片
+			function showFile(file){
+				$('input[name=id]').val(file.formId);
+                var img = [];
+                img.push(`<li class="content-img-list-item" data-fileid="${file.id}">`);
+                img.push(`<img src="/hub-file/thumb/get/${file.id}" layer-src="/hub-file/get/${file.id}" alt="${file.name}">`);
+                img.push(`<a class="delete-btn hide" title="删除">`);
+                img.push(`<i class="layui-icon layui-icon-delete" style="font-size: 30px; color: #fff;"></i>`);
+                img.push('</a>');
+                img.push('</li>');
+                $(".content-img-list").append(img.join(""));
+			}
+            //初始化数据
+            function init() {
+                $.get(`/project-user/list-developer/${projectId}`, function (res) {
+                    if (res.code == 0) {
+                        var dom = [];
+                        $.each(res.data, function (j, u) {
+                            dom.push(`<input type="checkbox" name="users" value="${u.userId}" title="${u.userName}" lay-skin="primary">`);
+                        });
+                        $(".USERS").html(dom.join(""));
+                        form.render('checkbox');
+                    } else {
+                        layer.alert(res.msg);
+                    }
+                }, "json");
+
+                $.get(`/project-version/list/${projectId}`, function (res) {
+                    if (res.code == 0) {
+                        var dom = ['<option value="">--选择版本--</option>'];
+                        $.each(res.data, function (j, u) {
+                            dom.push(`<option value="${u.version}">${u.version}</option>`);
+                        });
+                        $("select[name='projectVersion']").html(dom.join(""));
+                        form.render('select');
+                    } else {
+                        layer.alert(res.msg);
+                    }
+                }, "json");
+            }
+            init();
+            layer.photos({
+                shadeClose: false
+                , closeBtn: 2
+                , anim: 5
+                , photos: '.content-img-list'
+            });
+            function openBugTrack(bugId) {
+                let index = layer.open({
+                    type: 2,
+                    title: false,
+                    closeBtn:0,
+                    area: ['100%', '100%'],
+                    shade: [0.8, '#393D49'],
+                    content: `/views/bug-track.html?bugId=${bugId}&projectId=${projectId}`,
+                    success: function(layero, index){
+                    },
+                    cancel: function (index, layero) {
+                        layer.close(index);
+                    },
+                    end: function () {
+                    	
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+<div class="layui-fluid" style="padding: 20px 0px 0px 0px;">
+    <div class="layui-form-item" style="margin-bottom: 0px;">
+        <div class="layui-inline" style="margin-left: 0; float: left;">
+            <button class="layui-btn layui-btn-normal" id="add">新增</button>
+        </div>
+        <div style="float: right;">
+            <form class="layui-form" action="" lay-filter="query-form">
+                <div class="layui-inline">
+                    <div class="layui-input-inline" style="width: 200px;">
+                        <select name="level" id="level">
+                            <option value="">级别</option>
+                            <option value="1">错误</option>
+                            <option value="2">严重</option>
+                            <option value="3">一般</option>
+                            <option value="4">建议</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <div class="layui-input-inline" style="width: 200px;">
+                        <select name="state" id="state">
+                            <option value="">状态</option>
+                            <option value="1">开启</option>
+                            <option value="2">解决</option>
+                            <option value="3">驳回</option>
+                            <option value="4">关闭</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <div class="layui-input-inline" style="width: 300px;">
+                        <input type="text" name="word" placeholder="请输入标题或描述信息" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-inline" style="margin-right: 0px;">
+                    <button class="layui-btn" lay-submit lay-filter="*">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <table id="bug-table" lay-filter="bug-table"></table>
+</div>
+
+<div id="bug-form" style="padding: 15px 80px 15px 0px;display: none;">
+    <form class="layui-form" name="bug-form" action="" lay-filter="bug-form">
+        <input type="hidden" name="id" value="">
+        <input type="hidden" name="state" value="1">
+        <input type="hidden" name="projectId" value="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">标题</label>
+            <div class="layui-input-block">
+                <input type="text" name="title" required lay-verify="required" placeholder="请输入标题" autocomplete="off"
+                       class="layui-input" maxlength="100">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">级别</label>
+            <div class="layui-input-block">
+                <input type="radio" name="level" value="1" title="错误">
+                <input type="radio" name="level" value="2" title="严重">
+                <input type="radio" name="level" value="3" title="一般" checked="checked">
+                <input type="radio" name="level" value="4" title="建议">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">归属</label>
+            <div class="layui-input-block USERS">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">版本</label>
+            <div class="layui-input-block">
+                <select name="projectVersion" lay-verify="required"></select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">描述</label>
+            <div class="layui-input-block">
+                <textarea placeholder="请输入描述" class="layui-textarea" required lay-verify="required" name="description" maxlength="500"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">附件</label>
+            <div class="layui-input-block">
+                <button type="button" class="layui-btn layui-btn-sm" id="uploadBtn">
+                    <i class="layui-icon">&#xe67c;</i>上传图片
+                </button>
+                <ul class="content-img-list"></ul>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="*">保存</button>
+                <button type="button" class="layui-btn layui-btn-primary" onclick="layer.closeAll()">返回</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>

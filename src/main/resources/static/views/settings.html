@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>项目设置</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript" src="/resources/bug-utils.js"></script>
+<script type="text/javascript">
+var id = getQueryParam("pId");
+layui.use(['element', 'layer', 'form'], function(){
+	var $ = layui.jquery, element = layui.element, form = layui.form;
+	!function init(){
+		var roles = ['PM', 'DEVELOPER', 'TESTER'];
+		//<input type="checkbox" name="role" value="ADMIN" title="管理员" lay-skin="primary">
+		$.post("/hub-user/pageList",{limit:100}, function(res){
+		 if(res.code == 0){
+		 	$.each(roles, function(i, e){
+				var dom = [];
+			 	$.each(res.data, function(j, u){
+			    	dom.push(`<input type="checkbox" name="${e}" value="${u.id}" title="${u.name}" lay-skin="primary">`);
+			 	});
+			 	$("." + e).html(dom.join(""));
+			});
+			form.render('checkbox');
+			//加载项目数据
+			$.get(`/project/get/${id}`,function(res){
+				if(res.code == 0){
+					form.val('project-form', res.data);
+				 	//填充人员
+				 	$.each(res.data.users, function(i, user){
+				  		$(`input[name=${user.role}][value=${user.userId}]`).prop("checked", true);
+				 	});
+				 	form.render('checkbox');
+				}else{
+			 		layer.alert(res.msg);
+				}
+			},"json");
+		 }else{
+		 	layer.alert(res.msg);
+		 }
+		}, "json");
+	}();
+	//用户保存
+	form.on('submit(project-submit)', function(data){
+		var formData = data.field;
+		//处理人员
+		delete formData.PM;
+		delete formData.TESTER;
+		delete formData.DEVELOPER;
+		var users = [];
+		$(":checkbox:checked").each(function(){
+			var othis = $(this);
+			users.push({
+				userId:othis.val(),
+				projectId:formData.id,
+				role:othis.attr("name")
+			});
+		});
+		formData.users = users;
+		var index = layer.load(2);
+		$.ajax({
+			type:'post',
+			url:"/project/addOrUpdate",
+			data:JSON.stringify(formData),
+			dataType:"json",
+			contentType:"application/json;charset=utf-8",
+			success:function(res){
+				if(res.code == 0){
+					layer.closeAll();
+					layer.msg('保存成功');
+				}else{
+					layer.msg(res.msg);
+				}
+			}
+		});
+	   	return false;
+	});
+});
+</script>
+</head>
+<body>
+<div class="layui-fluid" style="padding: 15px 0px;">
+	<form class="layui-form" action="" lay-filter="project-form">
+		<input type="hidden" name="id" value="">
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目名称</label>
+		  <div class="layui-input-block">
+		    <input type="text" name="name" required  lay-verify="required" placeholder="请输入项目名称" autocomplete="off" class="layui-input">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目描述</label>
+		  <div class="layui-input-block">
+		    <textarea name="description" placeholder="请输入项目描述" class="layui-textarea" required lay-verify="required"></textarea>
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目经理</label>
+		  <div class="layui-input-block PM">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">开发人员</label>
+		  <div class="layui-input-block DEVELOPER">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">测试人员</label>
+		  <div class="layui-input-block TESTER">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+	    <div class="layui-input-block">
+	      <button class="layui-btn" lay-submit lay-filter="project-submit">保存</button>
+	      <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+	    </div>
+	  	</div>
+	</form>
+</div>
+</body>
+</html>

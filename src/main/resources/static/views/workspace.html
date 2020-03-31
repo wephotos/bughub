@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>工作空间</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript" src="/resources/bug-utils.js"></script>
+<script type="text/javascript">
+let $;
+let id = getQueryParam("id");
+layui.use(['element', 'layer', 'form'], function(){
+	$ = layui.jquery;
+	let element = layui.element, form = layui.form;
+	
+	//切换选项卡
+	element.on('tab(tab-bug)', function(){
+	  let link = $(this).attr('link');
+      $("#main").attr("src", link + '?pId=' + id);
+    });
+	
+	//默认加载列表页面
+	$("#main").attr("src", '/views/bugs.html?pId=' + id);
+	
+	//初始化
+	!async function init(){
+		let user = (await HttpUtils.get("/user")).data;
+		//管理员
+		if('ADMIN' === user.roles){
+			$("li.settings").removeClass("settings");
+		}
+		let proj = (await HttpUtils.get(`/project/get/${id}`)).data;
+		$("b.title").text(proj.name);
+		$("span.layui-word-aux").text(proj.description);
+		//项目经理
+		$.each(proj.users, function(i, pu){
+			if(user.id == pu.userId && pu.role === 'PM'){
+				$("li.settings").removeClass("settings");
+				return false;
+			}
+		});
+	}();
+});
+</script>
+<style type="text/css">
+html,body{
+	height: 100%;
+}
+.layui-container,.layui-tab,.layui-tab-content{
+	height: 100%;
+	overflow: hidden;
+}
+.layui-tab-content{
+	top: -75px;
+	padding-top: 75px;
+	position: relative;
+	box-sizing: border-box;
+}
+.subject{
+	padding: 10px 0px 0px 5px;
+}
+.subject .title{
+	color:#009688;
+	font-size: 20px;
+}
+.settings{
+	display: none !important;
+}
+</style>
+</head>
+<body>
+<div class="layui-container">
+<p class="subject">
+	<b class="title">&nbsp;</b>
+	<span class="layui-word-aux">&nbsp;</span>
+</p>
+<div class="layui-tab layui-tab-brief" lay-filter="tab-bug">
+  <ul class="layui-tab-title" style="z-index: 9999">
+    <li class="layui-this" link="/views/bugs.html">BUG</li>
+    <li link="/views/version.html">版本</li>
+    <li link="/views/analysis.html">分析</li>
+    <li link="/views/settings.html" class="settings">设置</li>
+  </ul>
+  <div class="layui-tab-content" style="padding-left: 0px; padding-right: 0px;">
+  	<iframe id="main" name="main"  style="width: 100%;height: 100%;border: none;" src=""></iframe>
+  </div>
+</div>
+</div>
+</body>
+</html>

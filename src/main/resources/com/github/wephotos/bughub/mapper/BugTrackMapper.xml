@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.BugTrackMapper" >
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.BugTrack" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="bugId" property="bugId" jdbcType="CHAR" />
+    <result column="state" property="state" jdbcType="VARCHAR" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="version" property="version" jdbcType="VARCHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+  <resultMap id="BaseResultMapVo" type="com.github.wephotos.bughub.entity.vo.BugTrackVo" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="bugId" property="bugId" jdbcType="CHAR" />
+    <result column="state" property="state" jdbcType="INTEGER" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="version" property="version" jdbcType="VARCHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, bugId, state, title, description, version, userId, userName, createTime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from bug_track
+    where id = #{id,jdbcType=CHAR}
+  </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from bug_track
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.BugTrack" >
+    insert into bug_track (id, bugId, state, title, 
+      description, version, userId, 
+      userName, createTime)
+    values (#{id,jdbcType=CHAR}, #{bugId,jdbcType=CHAR}, #{state,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, 
+      #{description,jdbcType=VARCHAR}, #{version,jdbcType=VARCHAR}, #{userId,jdbcType=CHAR}, 
+      #{userName,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.BugTrack" >
+    update bug_track
+    <set >
+      <if test="bugId != null" >
+        bugId = #{bugId,jdbcType=CHAR},
+      </if>
+      <if test="state != null" >
+        state = #{state,jdbcType=VARCHAR},
+      </if>
+      <if test="title != null" >
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null" >
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null" >
+        version = #{version,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null" >
+        userId = #{userId,jdbcType=CHAR},
+      </if>
+      <if test="userName != null" >
+        userName = #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        createTime = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+
+
+  <select id="list" resultMap="BaseResultMapVo">
+    SELECT
+    <include refid="Base_Column_List" />
+    FROM bug_track
+    WHERE bugId = #{bugId,jdbcType=CHAR}
+    ORDER BY createTime ASC
+  </select>
+  
+</mapper>

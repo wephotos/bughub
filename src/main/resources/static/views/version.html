@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>项目版本</title>
+    <link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+    <script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+    <script type="text/javascript" src="/resources/bug-utils.js"></script>
+    <script type="text/javascript">
+        var projectId = getQueryParam("pId");
+        layui.use(['element', 'layer', 'form', 'upload'], function () {
+            var $ = layui.jquery, element = layui.element, form = layui.form, upload = layui.upload;
+            $("input[name=projectId]").val(projectId);
+            //加载项目版本
+            function load() {
+                $.get(`/project-version/list/${projectId}`, {}, function (res) {
+                    if (res.code == 0) {
+                        var template = $("#project-version-template");
+                        $.each(res.data, function (i, pvt) {
+                            var card = template.clone()
+                                    .attr("id", `project-version${i}`)
+                                	.css("display", "block");
+                            $(".layui-timeline-title", card).html(pvt.createTime);
+                            var html = [];
+                            html.push(pvt.description.replace(/\n/g, "<br>"));
+                            //附件
+                            html.push("<br/>");
+                            $.each(pvt.files, function(i, e){
+                            	html.push(`<a target='_blank' class='filename' href='/hub-file/get/${e.id}'>${e.name}</a>`);
+                            });
+                            $(".description", card).html(html.join(""));
+                            $(".layui-timeline").append(card);
+                        });
+                    } else {
+                        layer.alert(res.msg);
+                    }
+                }, "json");
+            }
+            load();
+			//发布
+            form.on('submit(version-form)', function (data) {
+                var formData = form.val("version-form");
+                $.ajax({
+                    type: 'post',
+                    url: "/project-version/add",
+                    data: JSON.stringify(formData),
+                    dataType: "json",
+                    contentType: "application/json;charset=utf-8",
+                    success: function (res) {
+                        if (res.code == 0) {
+                            window.location.reload(true);
+                        } else {
+                            layer.msg(res.msg);
+                        }
+                    }
+                });
+                return false;
+            });
+			//上传附件
+            upload.render({
+                elem: '#uploadBtn'
+                , url: '/hub-file/upload'
+                , data: {}
+                , accept: 'file'
+                , done: function (res) {
+                    if (res.code == 0) {
+                    	var fileId = res.data.id;
+                        $('input[name=id]').val(res.data.formId);
+                        var html = [];
+                        html.push(`<a class='filename' target='_blank' href='/hub-file/get/${fileId}'>`);
+                        html.push(res.data.name);
+                        html.push(`<i data-fileid="${fileId}" class="layui-icon layui-icon-delete" title="点击删除"></i>`)
+                        html.push('</a>');
+                        $('#files').prepend(html.join(""));
+                    }
+                }, before: function (obj) {
+                    this.data = {owner: $("input[name=id]").val()}
+                }
+                , error: function () {
+                }
+            });
+			//删除附件
+            $("body").on("click",".layui-icon-delete",function(e) {
+            	var othis = $(this);
+                var id = othis.data('fileid');
+                $.get(`/hub-file/delete/${id}`, function (res) {
+                    if(res.code == 0){
+                        othis.parent().remove();
+                    }else{
+                    	layer.msg(res.msg);
+                    }
+                },'json');
+                return false;
+            });
+        });
+    </script>
+    <style>
+        .layui-icon-delete {
+            color: red;
+            cursor: pointer;
+            margin-left: 2px;
+            vertical-align: middle;
+            font-size: 20px;
+        }
+        .filename{
+        	cursor:pointer;
+        	display:block;
+        	text-decoration: none;
+        	margin-right: 10px;
+        	line-height: 25px;
+        	color: #01AAED;
+        	font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-fluid" style="padding: 15px 0px;">
+    <!-- 项目发布表单 -->
+    <form class="layui-form" action="" lay-filter="version-form">
+        <input type="hidden" name="id">
+        <input type="hidden" name="projectId">
+        <div class="layui-form-item">
+          <button type="button" class="layui-btn" id="uploadBtn" style="float: left;">
+              <i class="layui-icon">&#xe67c;</i>文件
+          </button>
+          <div id="files" style="padding-left: 90px;">
+          </div>
+        </div>
+        <div class="layui-form-item">
+            <textarea name="description" placeholder="请输入版本描述" class="layui-textarea"
+                      required lay-verify="required" maxlength="500"></textarea>
+        </div>
+        <!-- 相关附件 -->
+        <!-- 操作按钮 -->
+        <div class="layui-form-item">
+            <button class="layui-btn" lay-submit lay-filter="*"> 发 布 </button>
+			<!--<button type="reset" class="layui-btn layui-btn-primary">重置</button>-->
+        </div>
+    </form>
+    <ul class="layui-timeline">
+        <li class="layui-timeline-item" id="project-version-template" style="display: none;">
+            <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
+            <div class="layui-timeline-content layui-text">
+                <h3 class="layui-timeline-title">xx月xx日</h3>
+                <p class="description"></p>
+            </div>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

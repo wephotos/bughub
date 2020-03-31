@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>首页</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript">
+//JavaScript代码区域
+layui.use(['element','layer','form'], function(){
+  var $ = layui.jquery, element = layui.element,layer = layui.layer,form = layui.form;
+	$.get("/user", function(res){
+		$("#username").prepend(res.data.name);
+	}, "json");
+
+  $("#modifyPwd").click(function () {
+    layer.open({
+      type:1,
+      title:'修改密码',
+      area: ['500px'],
+      shade: [0.8, '#393D49'],
+      content: $("#pwd-form"),
+      cancel:function(index, layero){
+        layer.close(index);
+      },
+      end:function () {
+        $("#pwd-form form")[0].reset();
+      }
+    });
+  });
+
+  form.verify({
+    confirmPwd:function (value,item) {
+      if($('input[name=password]').val() !== value){
+        return '两次密码输入不一致！';
+      }
+    }
+  });
+
+  form.on('submit(pwd-form)', function(data){
+    var formData = form.val("pwd-form");
+    $.post("/hub-user/modifyPassword", formData, function(res, status, xhr){
+      if(res.code === 0){
+        layer.closeAll();
+        layer.msg('修改成功');
+      }else{
+        layer.msg(res.msg);
+      }
+    }, "json");
+    return false;
+  });
+});
+</script>
+</head>
+<body class="layui-layout-body">
+<div class="layui-layout layui-layout-admin">
+  <div class="layui-header">
+    <div class="layui-logo">Bug管理系统</div>
+    <!-- 头部区域（可配合layui已有的水平导航） -->
+    <ul class="layui-nav layui-layout-left">
+      <li class="layui-nav-item"><a href="/views/projects.html?reload=true" target="main">项目</a></li>
+      <!-- <li class="layui-nav-item"><a href="/views/charts.html" target="main">统计</a></li> -->
+      <li class="layui-nav-item"><a href="/views/users.html" target="main">用户</a></li>
+    </ul>
+    <ul class="layui-nav layui-layout-right" lay-filter="rightNav">
+      <li class="layui-nav-item">
+        <a href="javascript:;" id="username">&nbsp;</a>
+        <dl class="layui-nav-child">
+          <dd><a href="javascript:void(0);" id="modifyPwd">安全</a></dd>
+          <dd><a href="/logout">退出</a></dd>
+        </dl>
+      </li>
+    </ul>
+  </div>
+  
+  <div class="layui-body" style="left: 0px; overflow: hidden;">
+    <!-- 内容主体区域 -->
+    <iframe id="main" name="main"  style="width: 100%;height: 100%;border: none;" src="/views/projects.html"></iframe>
+  </div>
+  
+  <div class="layui-footer" style="left: 0px;">
+    <!-- 底部固定区域 -->
+    © https://github.com/wephotos/
+  </div>
+</div>
+
+<div id="pwd-form" style="padding: 15px 80px 15px 0;display: none;">
+  <form class="layui-form" action="" lay-filter="pwd-form">
+    <div class="layui-form-item">
+      <label class="layui-form-label">原密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="oldPassword" required  lay-verify="required" placeholder="请输入原密码" autocomplete="off" class="layui-input" maxlength="32">
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label">密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="password" required  lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input" maxlength="32">
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label">确认密码</label>
+      <div class="layui-input-block">
+        <input type="password" name="confirmPwd" required  lay-verify="required|confirmPwd" placeholder="请输入确认密码" autocomplete="off" class="layui-input" maxlength="32">
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <div class="layui-input-block">
+        <button class="layui-btn" lay-submit lay-filter="*">保存</button>
+        <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+      </div>
+    </div>
+  </form>
+</div>
+</body>
+</html>

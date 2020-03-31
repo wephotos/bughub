@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.BugUserMapper">
+
+	<resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.BugUser">
+		<id column="id" property="id" jdbcType="CHAR" />
+		<result column="bugId" property="bugId" jdbcType="CHAR" />
+		<result column="userId" property="userId" jdbcType="CHAR" />
+		<result column="userName" property="userName" jdbcType="VARCHAR" />
+		<result column="fromUserId" property="fromUserId" jdbcType="CHAR" />
+		<result column="fromUserName" property="fromUserName" jdbcType="VARCHAR" />
+		<result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="creator" property="creator" jdbcType="TINYINT"/>
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		id, bugId, userId, userName, fromUserId, fromUserName, createTime, creator
+	</sql>
+
+	<select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String">
+		select
+		<include refid="Base_Column_List" />
+		from bug_user
+		where id = #{id,jdbcType=CHAR}
+	</select>
+
+	<!--根据bugId查找归属者-->
+	<select id="listBugUser" resultMap="BaseResultMap">
+		select 
+		<include refid="Base_Column_List"/>
+		from bug_user
+		where bugId = #{bugId,jdbcType=CHAR}
+	</select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+		delete from bug_user
+		where id = #{id,jdbcType=CHAR}
+	</delete>
+	
+	<insert id="insert" parameterType="com.github.wephotos.bughub.entity.BugUser">
+		insert into bug_user (id, bugId, userId, userName,fromUserId, fromUserName, createTime, creator)
+		values (#{id,jdbcType=CHAR}, #{bugId,jdbcType=CHAR},
+		#{userId,jdbcType=CHAR}, #{userName,jdbcType=VARCHAR},
+		#{fromUserId,jdbcType=CHAR}, #{fromUserName,jdbcType=VARCHAR},
+		#{createTime,jdbcType=TIMESTAMP},
+		#{creator,jdbcType=TINYINT})
+	</insert>
+
+	<update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.BugUser">
+		update bug_user
+		<set>
+			<if test="bugId != null">
+				bugId = #{bugId,jdbcType=CHAR},
+			</if>
+			<if test="userId != null">
+				userId = #{userId,jdbcType=CHAR},
+			</if>
+			<if test="userName != null">
+				userName = #{userName,jdbcType=VARCHAR},
+			</if>
+			<if test="fromUserId != null">
+				fromUserId = #{fromUserId,jdbcType=CHAR},
+			</if>
+			<if test="fromUserName != null">
+				fromUserName = #{fromUserName,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				createTime = #{createTime,jdbcType=TIMESTAMP},
+			</if>
+		</set>
+		where id = #{id,jdbcType=CHAR}
+	</update>
+	<!-- 删除用户Bug -->
+	<delete id="deleteUserFromBug" parameterType="java.lang.String">
+		delete from bug_user
+		where 
+		<!-- 创建者不可删除 -->
+		creator = 0
+		and
+		bugId = #{bugId,jdbcType=CHAR}
+		and
+		userId = #{userId,jdbcType=CHAR}
+	</delete>
+
+	<delete id="deleteByBugId" parameterType="java.lang.String">
+		delete from bug_user
+		where bugId = #{bugId,jdbcType=CHAR}
+	</delete>
+
+</mapper>

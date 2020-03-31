@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+	<link rel="stylesheet" href="/resources/bug-image.css">
+    <script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+    <script type="text/javascript" src="/resources/bug-utils.js"></script>
+	<script type="text/javascript" src="/resources/bug-image.js"></script>
+    <title>bug-track</title>
+    <script type="text/javascript">
+    	let $;
+        let bugId = getQueryParam("bugId");
+        let projectId = getQueryParam("projectId");
+        layui.use(['layer', 'form', 'table','upload'], function () {
+            $ = layui.jquery;
+            let layer = layui.layer, form = layui.form,upload = layui.upload;
+            
+            $("input[name=bugId]").val(bugId);
+            
+            !function init() {
+                $.get(`/bug-track/list/${bugId}`, function (res) {
+                    if (res.code != 0) {
+                    	layer.alert(res.msg);
+                    	return false;
+                    }
+                    let template = $("#bug-track-template");
+                    $.each(res.data, function (i, pvt) {
+					let color = ['#66CD00','#63B8FF','#F08080','#C1C1C1'][pvt.state - 1];
+                        let card = template.clone()
+                            .attr("id", `bug-track${i}`)
+                            .css("display", "block");
+                        $("i.layui-timeline-axis", card).attr('title', pvt.stateName);
+                        $(".layui-timeline-title", card).html(`${pvt.userName} ${pvt.createTime}`).css('color',color);
+                        let html = [];
+                        if(pvt.title){
+                        	html.push('<b>' + pvt.title + '</b>');
+                        }
+                        if(pvt.version){
+                        	html.push(`<span title='版本' class='layui-word-aux'>${pvt.version}</span>`);
+                        }
+                        //有标题换二行
+                        if(pvt.title){
+							html.push('<br><br>');
+                        }
+                        html.push(pvt.description.replace(/\n/g, "<br>"));
+                        //附件
+                        html.push("<br/>");
+                        html.push(`<ul class="content-img-list photos-${pvt.id}" style="padding: 0;">`);
+                        $.each(pvt.files, function(i, file){
+                            html.push(`<li class="content-img-list-item" data-fileid="${file.id}">`);
+                            html.push(`<img src="/hub-file/thumb/get/${file.id}" layer-src="/hub-file/get/${file.id}" alt="${file.name}">`);
+                            html.push(`</li>`);
+                        });
+                        html.push(`</ul>`);
+                        $(".description", card).html(html.join(""));
+                        $(".layui-timeline").append(card);
+                        //图片预览
+                        let photos = `.photos-${pvt.id}`;
+						layer.photos({
+							shadeClose: false
+							, closeBtn: 2
+							, anim: 5
+							, photos: photos
+						});
+                    });
+                    //UI显示判断
+                    let index = res.data.length - 1;
+                    let isClosed = res.data[index].state === 4;
+                   	permission(isClosed);
+                }, "json");
+            }();
+            //创建人可关闭和追加
+            //归属者可解决和驳回
+            async function permission(isClosed){
+            	let user = (await HttpUtils.get("/user")).data;
+           		let bugUsers = (await HttpUtils.get(`/bug-user/list/${bugId}`)).data;
+               	//判断创建者或归属者
+               	$.each(bugUsers, function(i, bu){
+   					if(bu.userId == user.id){
+   						//关闭状态
+   						if(isClosed){
+   							//创建者可开启BUG
+   							if(bu.creator == true){
+   								$("#open-inline").show();
+   								$("#form-elements").show();
+   								$("textarea[name=description]").focus();
+   							}
+   						}else{
+   							//创建者
+   							if(bu.creator == true){
+	   							$("#tester").show();
+	   						}else{
+								showDevloper(user);
+		   						$("#developer").show();
+	   						}
+	   						$("#form-elements").show();
+	   						$("textarea[name=description]").focus();
+   						}
+   					}
+   				});
+               	//滚动到底部
+               	$(document).scrollTop($(document).height());
+            }
+            //显示开发人员
+            function showDevloper(user){
+            	$.get(`/project-user/list-developer/${projectId}`, function (res) {
+                    if (res.code == 0) {
+                        var html = [];
+                        $.each(res.data, function (j, u) {
+                        	if(user.id == u.userId){
+                        		return true;
+                        	}
+                        	html.push(`<input type="radio" name="userId" value="${u.userId}" title="${u.userName}" lay-skin="primary">`);
+                        });
+                        $(".devloper").html(html.join(""));
+                        form.render('radio');
+                    } else {
+                        layer.alert(res.msg);
+                    }
+                }, "json");
+            }
+         	//已解决
+            form.on('submit(submit-fixed)', function (data) {
+            	addTrack(data.field, 'fixed');
+            	return false;
+            });
+         	//驳回
+            form.on('submit(submit-reject)', function (data) {
+            	addTrack(data.field, 'reject');
+            	return false;
+            });
+         	//追加
+            form.on('submit(submit-open)', function (data) {
+            	addTrack(data.field, 'append');
+            	return false;
+            });
+            //关闭
+            form.on('submit(submit-closed)', function (data) {
+            	addTrack(data.field, 'closed');
+                return false;
+            });
+            //移交
+            form.on('submit(submit-hand-over)', function(data){
+            	var index = layer.open({
+                    type: 1,
+                    title: '移交他人',
+                    closeBtn:1,
+                    area: ['450px','250px'],
+                    shade: [0.8, '#393D49'],
+                    content: $(".devloper"),
+                    btn:['确定','取消'],
+                    yes: function(index, layero) {
+                    	var data = form.val('bug-track-form');
+                    	if(!data.userId){
+                    		layer.msg('请选择移交人员');
+                    		return false;
+                    	}
+                    	data.userName = $(":radio[name=userId]:checked").attr("title");
+                    	addTrack(data, 'hand-over');
+                    	return false;
+                    }
+                });
+            	return false;
+            });
+            //添加追踪
+            function addTrack(formData, action){
+                $.ajax({
+                     type: 'post',
+                     dataType: "json",
+                     url: `/bug-track/${action}`,
+                     data: JSON.stringify(formData),
+                     contentType: "application/json;charset=utf-8",
+                     success: function (res) {
+                         if (res.code == 0) {
+                             parent.layer.closeAll();
+                        	 parent.tableIns.reload({});
+                         } else {
+                             layer.msg(res.msg);
+                         }
+                     }
+                 });
+            }
+            //上传图片
+            upload.render({
+                elem: '#uploadBtn'
+                , url: '/hub-file/upload'
+                , data: {}
+                , done: function (res) {
+                    if (res.code == 0) {
+                        showFile(res.data);
+                    }else{
+                        layer.msg(res.msg);
+                    }
+                }
+                , before: function (obj) {
+                    this.data = {owner: $('input[name=id]').val()}
+                }
+                , error: function () {
+                }
+            });
+          	//粘贴图片
+			$(".layui-form").on("paste", function(event){
+				onPasteClipboardImage(event, function(base64){
+					let data = {
+							base64:base64,
+							owner: $('input[name=id]').val()
+					};
+					$.post("/hub-file/upload/base64-image", data, function(res){
+						if(res.code == 0){
+							showFile(res.data);
+						}else{
+							layer.msg(res.msg);
+						}
+					}, "json");
+				});
+			});
+            //上传成功显示到页面
+          	function showFile(file){
+          		$('input[name=id]').val(file.formId);
+                let img = [];
+                img.push(`<li class="content-img-list-item" data-fileid="${file.id}">`);
+                img.push(`<img src="/hub-file/thumb/get/${file.id}" layer-src="/hub-file/get/${file.id}" alt="${file.name}">`);
+                img.push(`<a class="delete-btn hide" title="删除">`);
+                img.push(`<i class="layui-icon layui-icon-delete" style="font-size: 30px; color: #fff;"></i>`);
+                img.push('</a>');
+                img.push('</li>');
+                $("#images").append(img.join(""));
+          	}
+			//图片预览
+			layer.photos({
+				shadeClose: false
+				, closeBtn: 2
+				, anim: 5
+				, photos: '.content-img-list'
+			});
+        });
+    </script>
+</head>
+<body>
+<div class="layui-fluid" style="padding: 15px 0;">
+    <!-- 时间轴 -->
+    <div class="layui-form-item">
+	    <ul class="layui-timeline">
+	        <li class="layui-timeline-item" id="bug-track-template" style="display: none;">
+	            <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
+	            <div class="layui-timeline-content layui-text">
+	                <h3 class="layui-timeline-title"></h3>
+	                <p class="description"></p>
+	            </div>
+	        </li>
+	    </ul>
+    </div>
+
+    <!-- Bug跟踪表单 -->
+    <form class="layui-form" action="" lay-filter="bug-track-form">
+        <input type="hidden" name="id">
+        <input type="hidden" name="bugId">
+        <div id="form-elements" style="display: none;padding-left: 30px;">
+	        <div class="layui-form-item">
+		        <textarea name="description" placeholder="请输入描述"
+		                  class="layui-textarea" required lay-verify="required"
+		                  maxlength="500"></textarea>
+	        </div>
+	        <div class="layui-form-item">
+		        <button type="button" class="layui-btn layui-btn-sm" id="uploadBtn">
+		            <i class="layui-icon">&#xe67c;</i>图片
+		        </button>
+		        <ul class="content-img-list" id="images"></ul>
+	        </div>
+        </div>
+        <div class="layui-form-item devloper" style="display: none;padding: 10px 15px;">
+        
+        </div>
+        <!-- 操作按钮 -->
+        <div class="layui-form-item" style="padding-left: 30px;">
+        	<div class="layui-inline" id="developer" style="display: none;">
+            	<button class="layui-btn" lay-submit lay-filter="submit-fixed">已解决</button>
+            	<button class="layui-btn layui-btn-warm" lay-submit lay-filter="submit-reject"> 驳 回 </button>
+            	<button class="layui-btn layui-btn-danger" lay-submit lay-filter="submit-hand-over"> 移 交 </button>
+            </div>
+            <div class="layui-inline" id="tester" style="display: none;">
+	            <button class="layui-btn layui-btn-normal" lay-submit lay-filter="submit-open"> 追 加 </button>
+	            <button class="layui-btn layui-btn-danger" lay-submit lay-filter="submit-closed"> 关 闭 </button>
+            </div>
+            <div class="layui-inline" id="open-inline" style="display: none;">
+            	<button class="layui-btn layui-btn-danger" lay-submit lay-filter="submit-open"> 开 启 </button>
+            </div>
+            <div class="layui-inline">
+		    	<button class="layui-btn layui-btn-primary" type="button" onclick="javascript:parent.layer.closeAll();"> 返 回 </button>
+		    </div>
+        </div>
+    </form>
+
+</div>
+</body>
+</html>

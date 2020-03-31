@@ -1,0 +1,33 @@
+.content-img-list {
+    margin: 10px 0;
+}
+
+.content-img-list img {
+    width: 165px;
+    height: 96px;
+    border: 1px dashed #DEDEDE;
+}
+
+.content-img-list-item {
+    position: relative;
+    display: inline-block;
+    width: 165px;
+    height: 96px;
+}
+
+.delete-btn {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    text-align: center;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    height: 28px;
+    line-height: 28px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.content-img-list-item .hide {
+    display: none;
+}

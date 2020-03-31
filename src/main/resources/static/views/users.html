@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>用户</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript">
+layui.use(['layer', 'form', 'table'], function(){
+	var $ = layui.jquery, layer = layui.layer,form = layui.form, table = layui.table;
+	var tableIns = table.render({
+        elem: '#user-table'
+        , url: '/hub-user/pageList' //数据接口
+        , method: 'post'
+        , page: true //开启分页
+        , loading: true
+        , toolbar: 'default'
+        , autoSort: false
+        , defaultToolbar : ['filter']
+        , request: {
+            pageName: 'curr' //页码的参数名称，默认：page
+           ,limitName: 'limit' //每页数据量的参数名，默认：limit
+        }
+        , cols: [[ //表头
+        	{title: '选择', type: 'radio', fixed: 'left'}
+            , {field: 'sort', title: '序号', type: 'numbers', width: 150}
+            , {field: 'name', title: '姓名'}
+            , {field: 'account', title: '账号', width: 200}
+            , {field: 'roles', title: '角色', width: 200}
+            , {field: 'updateTime', title: '时间', width: 200, sort: true}
+        ]]
+    });
+	//监听排序事件
+	table.on('sort(user-table)', function(obj){
+		var word = $("input[name=word]").val();
+		tableIns.reload({
+			where:{
+				condition:word,
+				sortField:obj.field, 
+				sortDirection:obj.type
+			}
+		});
+	});
+	//工具栏按钮事件
+	table.on('toolbar(user-table)', function(obj){
+		var checkStatus = table.checkStatus(obj.config.id);
+		var id = checkStatus.data[0] && checkStatus.data[0].id;
+		switch(obj.event){
+		case 'add':
+			$("#user-form input:not(:radio)").val("");
+			open();
+			break;
+		case 'delete':
+			if(checkStatus.data.length == 0){
+				layer.msg('未选中任何用户!');
+				return false;				
+			}
+			layer.confirm('真的要删除用户吗?', function(index){
+		      layer.close(index);
+		      //向服务端发送删除指令
+		      $.get("/hub-user/delete/" + id, function(res, status, xhr){
+		    	  if(res.code == 0){
+				      tableIns.reload({});
+		    	  }else{
+		    		  layer.msg(res.msg);
+		    	  }
+		      },"json");
+		    });
+			break;
+		case 'update':
+			if(checkStatus.data.length == 0){
+				layer.msg('未选中任何用户!');
+				return false;				
+			}
+			$.get("/hub-user/get/" + id, function(res, status, xhr){
+				form.val('user-form', res.data);
+				open();
+			},"json");
+			break;
+		}
+		//弹出表单
+		function open(){
+			layer.open({
+				  type:1,
+				  title:'用户管理',
+				  area: ['500px'],
+	              shade: [0.8, '#393D49'],
+				  content: $("#user-form"),
+				  cancel:function(index, layero){
+				    layer.close(index);
+				  }
+			});
+		}
+	});
+	
+	//查询事件
+	form.on('submit(query-form)', function(data){
+		var word = $("input[name=word]").val();
+		tableIns.reload({
+			where:{condition:word}
+		});
+		return false;
+	});
+	//用户保存
+	form.on('submit(user-form)', function(data){
+		var formData = form.val("user-form");
+		$.post("/hub-user/addOrUpdate", formData, function(res, status, xhr){
+			if(res.code == 0){
+				layer.closeAll();
+				tableIns.reload({});
+			}else{
+				layer.msg(res.msg);
+			}
+		}, "json");
+		
+		return false;
+	});
+});
+</script>
+</head>
+<body>
+<div class="layui-fluid" style="padding-top: 20px;">
+    <form class="layui-form" action="" lay-filter="query-form">
+		<div class="layui-form-item" style="margin-bottom: 0px;text-align: right;">
+			<div class="layui-inline">
+			  <div class="layui-input-inline" style="width: 300px;">
+			    <input type="text" name="word" placeholder="姓名、账号" autocomplete="off" class="layui-input">
+			  </div>
+			</div>
+			<div class="layui-inline">
+			      <button class="layui-btn" lay-submit lay-filter="*">查询</button>
+		    </div>
+	    </div>
+	</form>
+	<table id="user-table" lay-filter="user-table"></table>
+</div>
+<div id="user-form" style="padding: 15px 80px 15px 0px;display: none;">
+	<form class="layui-form" action="" lay-filter="user-form">
+		<input type="hidden" name="id" value="">
+		<div class="layui-form-item">
+		  <label class="layui-form-label">姓名</label>
+		  <div class="layui-input-block">
+		    <input type="text" name="name" required  lay-verify="required" placeholder="请输入姓名" autocomplete="off" class="layui-input">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">账号</label>
+		  <div class="layui-input-block">
+		    <input type="text" name="account" required  lay-verify="required" placeholder="请输入账号" autocomplete="off" class="layui-input" >
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">角色</label>
+		  <div class="layui-input-block">
+		    <input type="radio" name="roles" value="ADMIN" title="管理员">
+      		<input type="radio" name="roles" value="PM" title="项目经理">
+      		<input type="radio" name="roles" value="DEVELOPER" title="开发人员" checked="checked">
+      		<input type="radio" name="roles" value="TESTER" title="测试人员">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">密码</label>
+		  <div class="layui-input-block">
+	      	<input type="password" name="password" required  lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+	    <div class="layui-input-block">
+	      <button class="layui-btn" lay-submit lay-filter="*">保存</button>
+	      <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+	    </div>
+	  	</div>
+	</form>
+</div>
+</body>
+</html>

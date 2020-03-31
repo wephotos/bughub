@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>项目</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript" src="/resources/bug-utils.js"></script>
+<script type="text/javascript">
+var reload = getQueryParam("reload");
+//访问上次页面
+if(reload !== 'true'){
+	window.location.href = window.localStorage.getItem("page") || "javascript:void(0)";
+}
+var $;
+layui.use(['element', 'layer', 'form'], function(){
+  $ = layui.jquery;
+  let element = layui.element, form = layui.form;
+  //管理员或项目经理
+  var isAdminPM = false;
+  //点击项目
+  $(document).on("click", ".project-card", function(e){
+	  var othis = $(this);
+	  var id = othis.data("project");
+	  if(isAdminPM && $(e.target).hasClass("layui-card-header")){
+		  showProjectDialog(id);
+	  }else{
+		  var page = "/views/workspace.html?id=" + id;
+		  window.localStorage.setItem("page", page);
+		  window.location.href = page;
+	  }
+  });
+  
+  //弹出项目管理会话框
+  function showProjectDialog(id){
+	  layer.open({
+		  type:1,
+		  title:'项目管理',
+		  area: ['800px'],
+          shade: [0.8, '#393D49'],
+		  content: $("#project-form"),
+		  success: function(layero, index){
+			  id && $.get(`/project/get/${id}`,function(res){
+				  if(res.code == 0){
+					  form.val('project-form', res.data);
+					  //填充人员
+					  $.each(res.data.users, function(i, user){
+						  $(`input[name=${user.role}][value=${user.userId}]`).prop("checked", true);
+					  });
+					  form.render('checkbox');
+				  }else{
+					  layer.alert(res.msg);
+				  }
+			  },"json");
+		  },
+		  cancel:function(index, layero){
+		    layer.close(index);
+		  	//置空表单
+			$(":text").val("");
+			$("textarea").val("");
+			$(":checkbox:checked").prop("checked", false);
+			form.render('checkbox');
+		  }
+	});
+  }
+  
+  //用户保存
+  form.on('submit(project-submit)', function(data){
+	var formData = data.field;
+	//处理人员数据
+	delete formData.PM;
+	delete formData.TESTER;
+	delete formData.DEVELOPER;
+	var users = [];
+	$(":checkbox:checked").each(function(){
+		var othis = $(this);
+		users.push({
+			userId:othis.val(),
+			projectId:formData.id,
+			role:othis.attr("name")
+		});
+	});
+	formData.users = users;
+	$.ajax({
+		type:'post',
+		url:"/project/addOrUpdate",
+		data:JSON.stringify(formData),
+		dataType:"json",
+		contentType:"application/json;charset=utf-8",
+		success:function(res){
+			if(res.code == 0){
+				layer.closeAll();
+				window.location.reload(true);
+			}else{
+				layer.msg(res.msg);
+			}
+		}
+	});
+    return false;
+  });
+  
+  //初始数据
+  !async function init(){
+	  //当前用户
+	  var resu = await HttpUtils.get("/user");
+	  //管理员或项目经理
+	  if("ADMIN,PM".indexOf(resu.data.roles) > -1){
+		  isAdminPM = true;
+		  //可添加项目
+		  $(".create-card").css("display", "inline-block");
+		  $(document).on("click", ".create-card", function(){
+			  showProjectDialog();
+		  });
+		  //加载用户
+		  var resusers = await HttpUtils.post("/hub-user/pageList", {limit:100});
+		  $.each(['PM', 'DEVELOPER', 'TESTER'], function(i, e){
+			  var html = [];
+			  $.each(resusers.data, function(j, u){
+				  html.push(`<input type="checkbox" name="${e}" value="${u.id}" title="${u.name}" lay-skin="primary">`);
+			  });
+			  $("." + e).html(html.join(""));
+		  });
+		  form.render('checkbox');
+	  }
+	  //加载项目
+	  var resproj = await HttpUtils.get("/project/listQuery");
+	  //项目卡片模板
+	  var template = $("#project-template");
+	  $.each(resproj.data, function(i, proj){
+		  var card = template.clone()
+		  					 .attr("id", `project${i}`)
+		  					 .css("display", "inline-block");
+		  //项目标识
+		  card.data("project", proj.id);
+		  $(".layui-card-header", card).html(proj.name);
+		  $(".layui-card-body", card).html(proj.description);
+		  $(".time", card).html(proj.updateTime);
+		  //BUG统计数据
+		  $.each(proj.stats, function(i, e){
+			  var level = e.bugLevel.toLowerCase();
+			  $(`a.${level} span`, card).text(`(${e.count})`);
+		  });
+		  $(".layui-fluid").append(card);
+	  });
+  }();
+});
+</script>
+<style type="text/css">
+.layui-card {
+  width: 345px;
+  height: 225px;
+  display: inline-block;
+  border: 1px solid #eee;
+  margin: 15px 10px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.layui-card .layui-card-header {
+	background-color: #eee;
+}
+
+.bugs-info {
+	width: 100%;
+	bottom: 0px;
+	font-size: 16px;
+	position: absolute;
+	padding: 5px 10px;
+	box-sizing: border-box;
+}
+.bugs-info a{
+	margin-right: 5px;
+}
+.bugs-info .blocker {
+	color: #FF5722;
+}
+.bugs-info .critical {
+	color: #FFB800;
+}
+.bugs-info .normal {
+	color: #1E9FFF;
+}
+.bugs-info .enhancement {
+	color: #5FB878;
+}
+.bugs-info .time {
+	font-size: 14px;
+	line-height: 22px;
+	float: right;
+	color: #c2c2c2;
+}
+</style>
+</head>
+<body>
+<div class="layui-fluid">
+	<!-- 新建项目 -->
+   	<div id="project-create" class="layui-card create-card" style="text-align: center;display: none;" title="创建项目">
+		<i class="layui-icon layui-icon-addition" style="font-size: 50px;color: #ccc;line-height: 225px;"></i>
+	</div>
+	<!-- 项目卡片模板 -->
+	<div class="layui-card project-card" style="position: relative;display: none;" id="project-template">
+	  <div class="layui-card-header">项目</div>
+	  <div class="layui-card-body">
+	        项目描述
+	  </div>
+	  <div class="bugs-info">
+	    <a class="blocker" title="错误">
+		    <i class="layui-icon layui-icon-face-smile"></i>
+		    <span>(0)</span>
+	    </a>
+	    <a class="critical" title="建议">
+		    <i class="layui-icon layui-icon-face-smile"></i>
+		    <span>(0)</span>
+	    </a>
+	    <a class="normal" title="一般">
+		    <i class="layui-icon layui-icon-face-smile"></i>
+		    <span>(0)</span>
+	    </a>
+	    <a class="enhancement" title="建议">
+		    <i class="layui-icon layui-icon-face-smile"></i>
+		    <span>(0)</span>
+	    </a>
+	    <span class="time">2020-02-28 15:00</span>
+	  </div>
+	</div>
+</div>
+<!-- 项目表单 -->
+<div id="project-form" style="padding: 15px 80px 15px 0px;display: none;">
+	<form class="layui-form" action="" lay-filter="project-form">
+		<input type="hidden" name="id" value="">
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目名称</label>
+		  <div class="layui-input-block">
+		    <input type="text" name="name" required  lay-verify="required" placeholder="请输入项目名称" autocomplete="off" class="layui-input">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目描述</label>
+		  <div class="layui-input-block">
+		    <textarea name="description" placeholder="请输入项目描述" class="layui-textarea" required lay-verify="required"></textarea>
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">项目经理</label>
+		  <div class="layui-input-block PM">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">开发人员</label>
+		  <div class="layui-input-block DEVELOPER">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+		  <label class="layui-form-label">测试人员</label>
+		  <div class="layui-input-block TESTER">
+		  </div>
+		</div>
+		<div class="layui-form-item">
+	    <div class="layui-input-block">
+	      <button class="layui-btn" lay-submit lay-filter="project-submit">保存</button>
+	      <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+	    </div>
+	  	</div>
+	</form>
+</div>
+</body>
+</html>

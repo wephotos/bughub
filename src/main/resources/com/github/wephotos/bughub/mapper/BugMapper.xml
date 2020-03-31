@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.BugMapper" >
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.Bug" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="state" property="state" jdbcType="INTEGER" />
+    <result column="level" property="level" jdbcType="INTEGER" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="projectId" property="projectId" jdbcType="CHAR" />
+    <result column="projectName" property="projectName" jdbcType="VARCHAR" />
+    <result column="projectVersion" property="projectVersion" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+  <resultMap id="BugResultMapVo" type="com.github.wephotos.bughub.entity.vo.BugVo">
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="level" property="level" jdbcType="INTEGER" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="state" property="state" jdbcType="INTEGER" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="fromUserName" property="fromUserName" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="projectName" property="projectName" jdbcType="VARCHAR" />
+    <result column="owner" property="owner" jdbcType="VARCHAR" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    id, state, level, title, description, userId, userName, projectId, projectName, projectVersion, createTime
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    <include refid="Base_Column_List" />
+    from bug
+    where id = #{id,jdbcType=CHAR}
+  </select>
+
+  <select id="selectByPrimaryKeyForVo" resultMap="BugResultMapVo" parameterType="java.lang.String" >
+    select
+    <include refid="Base_Column_List" />
+    from bug
+    where id = #{id,jdbcType=CHAR}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from bug
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.Bug" >
+    insert into bug (id, state, level, 
+      title, description, userId, 
+      userName, projectId, projectName, 
+      projectVersion, createTime)
+    values (#{id,jdbcType=CHAR}, #{state,jdbcType=VARCHAR}, #{level,jdbcType=INTEGER}, 
+      #{title,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, #{userId,jdbcType=CHAR}, 
+      #{userName,jdbcType=VARCHAR}, #{projectId,jdbcType=CHAR}, #{projectName,jdbcType=VARCHAR}, 
+      #{projectVersion,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.Bug" >
+    update bug
+    <set >
+      <if test="state != null" >
+        state = #{state,jdbcType=INTEGER},
+      </if>
+      <if test="level != null" >
+        level = #{level,jdbcType=INTEGER},
+      </if>
+      <if test="title != null" >
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null" >
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null" >
+        userId = #{userId,jdbcType=CHAR},
+      </if>
+      <if test="userName != null" >
+        userName = #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="projectId != null" >
+        projectId = #{projectId,jdbcType=CHAR},
+      </if>
+      <if test="projectName != null" >
+        projectName = #{projectName,jdbcType=VARCHAR},
+      </if>
+      <if test="projectVersion != null" >
+        projectVersion = #{projectVersion,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        createTime = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+
+  <update id="updateState">
+    UPDATE bug SET state = #{state,jdbcType=INTEGER} WHERE id = #{bugId}
+  </update>
+
+  <!--  查询用户bug分页  -->
+  <select id="pageList" resultMap="BugResultMapVo">
+    select
+      b.id,
+      b.`level`,
+      b.userName,
+      b.title,
+      b.state,
+      b.projectName,
+      bu.fromUserName,
+      bu.createTime,
+    (SELECT GROUP_CONCAT(userName) FROM bug_user WHERE bug_user.bugId = b.id AND bug_user.creator = 0 GROUP BY bug_user.bugId) `owner`
+    from 
+      bug b, 
+      bug_user bu
+    <where>
+      <include refid="pageCond"/>
+    </where>
+    order by
+    <choose>
+      <when test="sortField != null">
+        ${sortField}
+        <if test="sortDirection != null">
+          ${sortDirection}
+        </if>
+      </when>
+      <otherwise>
+        createTime desc
+      </otherwise>
+    </choose>
+    LIMIT #{start}, #{limit}
+  </select>
+
+  <select id="pageCount" resultType="java.lang.Integer">
+    select
+      count(1)
+    from 
+      bug b, 
+      bug_user bu 
+    <where>
+      <include refid="pageCond"/>
+    </where>
+  </select>
+
+  <select id="pageManagerList" resultMap="BugResultMapVo">
+    select
+      b.id,
+      b.`level`,
+      b.userName,
+      b.title,
+      b.state,
+      b.projectName,
+      b.createTime,
+    (SELECT GROUP_CONCAT(userName) FROM bug_user WHERE bug_user.bugId = b.id AND bug_user.creator = 0 GROUP BY bug_user.bugId) `owner`
+    from 
+      bug b,
+      project_user pu
+    <where>
+	    <include refid="pageCondForManager" />
+    </where>
+    order by
+    b.state ASC, b.`level` DESC
+    <choose>
+      <when test="sortField != null">
+        ,${sortField}
+        <if test="sortDirection != null">
+          ${sortDirection}
+        </if>
+      </when>
+      <otherwise>
+        ,createTime desc
+      </otherwise>
+    </choose>
+    LIMIT #{start}, #{limit}
+  </select>
+
+  <select id="pageManagerCount" resultType="java.lang.Integer">
+    select
+      count(1)
+    from 
+      bug b,
+      project_user pu
+    <where>
+	    <include refid="pageCondForManager" />
+    </where>
+  </select>
+
+  <sql id="pageCond">
+    b.id = bu.bugId
+    AND
+	bu.userId = #{userId,jdbcType=CHAR}
+    <if test="condition != null" >
+	    AND
+	    b.projectId = #{condition.projectId,jdbcType=CHAR}
+	    <if test="condition.level != null and condition.level != 0" >
+          AND b.`level` = #{condition.level}
+        </if>
+        <if test="condition.state != null and condition.state !=''" >
+          AND b.state = #{condition.state}
+        </if>
+        <if test="condition.word != null and condition.word !=''">
+          AND (
+	        b.title LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
+        	OR
+        	b.description LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
+        )
+        </if>
+    </if>
+  </sql>
+
+  <sql id="pageCondForManager">
+  	b.projectId = pu.projectId
+    AND
+    pu.userId = #{userId,jdbcType=CHAR}
+    <if test="condition != null">
+      AND
+	  b.projectId = #{condition.projectId,jdbcType=CHAR}
+      <if test="condition.level != null and condition.level != 0" >
+        AND b.`level` = #{condition.level}
+      </if>
+      <if test="condition.state != null and condition.state !=''" >
+        AND b.state = #{condition.state}
+      </if>
+      <if test="condition.word != null and condition.word !=''" >
+        AND (
+	        b.title LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
+        	OR
+        	b.description LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
+        )
+      </if>
+    </if>
+  </sql>
+  <!-- 从状态和级别两方面统计BUG数量 -->
+  <select id="statistics" resultType="com.github.wephotos.bughub.entity.BugStats">
+  	SELECT 
+  	bug.state, bug.level, COUNT(1) `count`
+	FROM 
+	bug
+	<if test="userId != null and userId != ''">
+		,bug_user 
+	</if>
+	<where>
+		bug.projectId = #{projectId,jdbcType=CHAR}
+		<if test="userId != null and userId != ''">
+			and 
+			bug.id = bug_user.bugId
+			and
+			bug_user.userId = #{userId,jdbcType=CHAR}
+		</if>	
+	</where> 
+	GROUP BY bug.state, bug.level
+  </select>
+  
+  <select id="statsNotClosed" resultType="com.github.wephotos.bughub.entity.BugStats">
+  	SELECT 
+  	  b.level, 
+  	  COUNT(1) COUNT, 
+  	  p.id projectId
+	FROM 
+	  bug b,
+	  project p,
+	  project_user pu
+	WHERE
+	  b.projectId = p.id
+	  AND
+	  p.id = pu.projectId
+	  <![CDATA[
+	  	AND b.state <> 4
+	  ]]>
+	  <if test="userId != null and userId != ''">
+		  AND
+		  pu.userId = #{userId,jdbcType=CHAR}
+	  </if>
+	  GROUP BY p.id, b.level
+  </select>
+</mapper>

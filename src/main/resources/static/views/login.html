@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>登录</title>
+<link rel="stylesheet" href="/resources/plugins/layui/css/layui.css">
+<script type="text/javascript" src="/resources/plugins/layui/layui.js"></script>
+<script type="text/javascript" src="/resources/bug-utils.js"></script>
+<script type="text/javascript">
+//注意：折叠面板 依赖 element 模块，否则无法进行功能性操作
+layui.use(['element', 'layer', 'form'], function(){
+	var $ = layui.jquery, form = layui.form;
+	//登录
+	form.on('submit(login-submit)', function (data) {
+    	$.post("/login", data.field, function(res){
+    		if(res.code === 0){
+    			window.location.replace("/views/index.html");
+    		}else{
+    			layer.msg(res.msg);
+    		}
+    	}, "json");
+    	return false;
+    });
+});
+</script>
+<style type="text/css">
+html,body{
+	height: 100%;
+}
+.layui-fluid{
+	height: 100%;
+}
+.layui-form{
+	width: 350px;
+	height: 200px;
+	padding:10px;
+	margin:0 auto;
+	position: relative;
+	top: 50%;
+	margin-top: -200px;
+	border-radius:2px;
+	background:rgba(0, 0, 0, 0.05) none repeat scroll 0 0 !important;/*实现FF背景透明，文字不透明*/
+	filter:Alpha(opacity=10);
+	background:#000000;/*实现IE背景透明*/
+	box-shadow: 2px 2px 10px 2px rgba(0,0,0,0.5);
+}
+.layui-input{
+	height: 42px;
+	line-height: 20px;
+	padding: 10px 8px;
+}
+.layui-btn{
+	width: 100%;
+	background-color: #3f89ec;
+}
+h2{
+	color:#3f89ec;
+	text-align: center;
+	margin-bottom: 12px;
+}
+</style>
+</head>
+<body>
+<div class="layui-fluid">
+	<form class="layui-form" method="post" action="/login" lay-filter="login-form">
+		<h2>Bughub</h2>
+		<div class="layui-form-item">
+		    <input type="text" name="username" required  
+		    	lay-verify="required" placeholder="用户名" autocomplete="off" class="layui-input">
+		</div>
+		<div class="layui-form-item">
+		    <input type="password" name="password" required  
+		    	lay-verify="required" placeholder="密码" autocomplete="off" class="layui-input">
+		</div>
+		<div class="layui-form-item">
+	      <button class="layui-btn" lay-submit lay-filter="login-submit"> 登 录 </button>
+	  	</div>
+	</form>
+</div>
+<script type="text/javascript" color="0,255,0" opacity='0.7' zIndex="-1" count="99" src="//cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.min.js"></script>
+</body>
+</html>

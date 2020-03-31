@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.ProjectUserMapper" >
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.ProjectUser" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="projectId" property="projectId" jdbcType="CHAR" />
+  </resultMap>
+
+  <sql id="Base_Column_List" >
+    id, userId, projectId
+  </sql>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from project_user
+    where id = #{id,jdbcType=CHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from project_user
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.ProjectUser" >
+    insert into project_user (id, userId, projectId)
+    values (#{id,jdbcType=CHAR}, #{userId,jdbcType=CHAR}, #{projectId,jdbcType=CHAR})
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.ProjectUser" >
+    update project_user
+    <set >
+      <if test="userId != null" >
+        userId = #{userId,jdbcType=CHAR},
+      </if>
+      <if test="projectId != null" >
+        projectId = #{projectId,jdbcType=CHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+  
+  <delete id="deleteUserFromProject" parameterType="java.lang.String">
+    delete from project_user
+    where 
+    userId = #{userId,jdbcType=CHAR}
+    and
+    projectId = #{projectId,jdbcType=CHAR}
+  </delete>
+  
+  <delete id="deleteByProjectId" parameterType="java.lang.String">
+  	delete from project_user
+    where
+    projectId = #{projectId,jdbcType=CHAR}
+  </delete>
+  
+  <!-- 批量插入 -->
+  <insert id="insertBatch" parameterType="com.github.wephotos.bughub.entity.ProjectUser" >
+    insert into project_user (id, userId, projectId)
+    values 
+    <foreach item="item" collection="data" separator=",">
+      (#{item.id,jdbcType=CHAR}, #{item.userId,jdbcType=CHAR}, #{item.projectId,jdbcType=CHAR})
+    </foreach>
+  </insert>
+</mapper>

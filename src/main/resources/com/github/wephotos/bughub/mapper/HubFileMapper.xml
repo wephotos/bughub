@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.github.wephotos.bughub.mapper.HubFileMapper" >
+  <resultMap id="BaseResultMap" type="com.github.wephotos.bughub.entity.HubFile" >
+    <id column="id" property="id" jdbcType="CHAR" />
+    <result column="owner" property="owner" jdbcType="CHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="size" property="size" jdbcType="INTEGER" />
+    <result column="objectName" property="objectName" jdbcType="VARCHAR" />
+    <result column="contentType" property="contentType" jdbcType="VARCHAR" />
+    <result column="userId" property="userId" jdbcType="CHAR" />
+    <result column="userName" property="userName" jdbcType="VARCHAR" />
+    <result column="createTime" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, owner, name, size, objectName, contentType, userId, userName, createTime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from hub_file
+    where id = #{id,jdbcType=CHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from hub_file
+    where id = #{id,jdbcType=CHAR}
+  </delete>
+  <insert id="insert" parameterType="com.github.wephotos.bughub.entity.HubFile" >
+    insert into hub_file (id, owner, name, size, 
+      objectName, contentType, userId, userName, createTime
+      )
+    values (#{id,jdbcType=CHAR}, #{owner,jdbcType=CHAR}, #{name,jdbcType=VARCHAR}, #{size,jdbcType=INTEGER}, 
+      #{objectName,jdbcType=VARCHAR}, #{contentType,jdbcType=VARCHAR}, #{userId,jdbcType=CHAR}, 
+      #{userName,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}
+      )
+  </insert>
+  
+  <update id="updateByPrimaryKeySelective" parameterType="com.github.wephotos.bughub.entity.HubFile" >
+    update hub_file
+    <set >
+      <if test="owner != null" >
+        owner = #{owner,jdbcType=CHAR},
+      </if>
+      <if test="name != null" >
+        name = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="size != null" >
+        size = #{size,jdbcType=INTEGER},
+      </if>
+      <if test="objectName != null" >
+        objectName = #{objectName,jdbcType=VARCHAR},
+      </if>
+      <if test="contentType != null" >
+        contentType = #{contentType,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null" >
+        createTime = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=CHAR}
+  </update>
+  
+  <select id="list" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from hub_file
+    where owner = #{owner,jdbcType=CHAR}
+  </select>
+</mapper>
