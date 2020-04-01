@@ -2,15 +2,16 @@ package com.github.wephotos.bughub;
 
 import javax.annotation.Resource;
 
-import com.github.wephotos.bughub.entity.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import com.github.wephotos.bughub.entity.HubUser;
+import com.github.wephotos.bughub.entity.HubUserRole;
+import com.github.wephotos.bughub.entity.Project;
+import com.github.wephotos.bughub.service.HubUserService;
 import com.github.wephotos.bughub.service.ProjectService;
 import com.github.wephotos.bughub.service.ProjectUserRoleService;
 import com.github.wephotos.bughub.utils.BugUtils;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
-
-import com.github.wephotos.bughub.service.HubUserService;
 
 @SpringBootTest
 class BughubApplicationTests {
@@ -27,7 +28,6 @@ class BughubApplicationTests {
 
     }
 
-    @Rollback(false)
     @Test
     void hubUserInsert() {
         HubUser user = new HubUser();
