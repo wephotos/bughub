@@ -1,5 +1,6 @@
 package com.github.wephotos.bughub.entity;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -14,6 +15,7 @@ import java.util.Date;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode(of = {"bugId", "userId"})
 public class BugUser {
 	/**
 	 * 主键

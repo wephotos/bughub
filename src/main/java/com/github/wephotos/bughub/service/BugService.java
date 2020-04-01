@@ -50,14 +50,26 @@ public class BugService {
         bug.setProjectName(project.getName());
         bug.setCreateTime(BugUtils.timestamp());
         bugMapper.insert(bug);
-        //将创建者加入bugUser中
-        BugUser bugUser = new BugUser();
-        bugUser.setUserId(bug.getUserId());
-        bugUser.setUserName(bug.getUserName());
-        bugUser.setCreator(true);
-        bugUser.setCreateTime(BugUtils.timestamp());
+        //创建人
+        String userId = bug.getUserId();
         List<BugUser> users = bug.getUsers();
-        users.add(bugUser);
+        boolean match = users.stream().anyMatch(p -> {
+        	if(userId.equals(p.getUserId())) {
+        		p.setCreator(true);
+        		return true;
+        	}else {
+        		return false;
+        	}
+        });
+        //创建者不是归属人添加进BUG用户中
+        if(!match) {
+	        BugUser bugUser = new BugUser();
+	        bugUser.setUserId(bug.getUserId());
+	        bugUser.setUserName(bug.getUserName());
+	        bugUser.setCreator(true);
+	        bugUser.setCreateTime(BugUtils.timestamp());
+	        users.add(bugUser);
+        }
         insertBugUser(bug, users);
         return bug.getId();
     }
