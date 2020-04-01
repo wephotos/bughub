@@ -94,12 +94,10 @@
     	project_user_role pur
     WHERE 
 	    u.id = pur.userId
-	    and 
-	    u.roles = pur.role
 	    AND 
 	    pur.projectId = #{projectId}
 	    AND 
-	    u.roles = #{role}
+	    pur.role = #{role}
   </select>
   <!-- 获取用户在项目中的角色 -->
   <select id="listUserRole" resultMap="BaseResultMap">
