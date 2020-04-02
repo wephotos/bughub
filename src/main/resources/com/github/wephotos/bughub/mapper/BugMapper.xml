@@ -256,25 +256,31 @@
   </select>
   
   <select id="statsNotClosed" resultType="com.github.wephotos.bughub.entity.BugStats">
-  	SELECT 
+	SELECT 
   	  b.level, 
   	  COUNT(1) COUNT, 
   	  p.id projectId
 	FROM 
 	  bug b,
-	  project p,
-	  project_user pu
+	  project p
+	  <if test="userId != null and userId != ''">
+	  ,bug_user bu
+	  ,project_user pu
+	  </if>
 	WHERE
 	  b.projectId = p.id
-	  AND
-	  p.id = pu.projectId
-	  <![CDATA[
-	  	AND b.state <> 4
-	  ]]>
 	  <if test="userId != null and userId != ''">
 		  AND
-		  pu.userId = #{userId,jdbcType=CHAR}
+		  b.`id` = bu.`bugId`
+		  AND
+		  p.`id` = pu.`projectId`
+		  AND 
+		  bu.`userId` = #{userId,jdbcType=CHAR}
+		  AND 
+		  pu.`userId` = #{userId,jdbcType=CHAR}
 	  </if>
+	  AND 
+	  b.state <> 4
 	  GROUP BY p.id, b.level
   </select>
 </mapper>
