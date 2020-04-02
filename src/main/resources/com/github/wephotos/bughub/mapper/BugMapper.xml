@@ -280,7 +280,9 @@
 		  pu.`userId` = #{userId,jdbcType=CHAR}
 	  </if>
 	  AND 
-	  b.state <> 4
+	  <![CDATA[
+	  	b.state <> 4
+	  ]]>
 	  GROUP BY p.id, b.level
   </select>
 </mapper>
