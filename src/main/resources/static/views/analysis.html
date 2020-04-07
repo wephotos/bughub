@@ -187,21 +187,21 @@
     		if(res.code == 0){
     			var data = res.data;
     			var o = data['OPEN'], 
-	    			r = data['REJECT'], 
 	    			f = data['FIXED'], 
+	    			r = data['REJECT'], 
 	    			c = data['CLOSED'];
     			var sum = o.reduce((a, c) => a + c) 
-		    			+ r.reduce((a, c) => a + c) 
-		    			+ f.reduce((a, c) => a + c) 
-		    			+ c.reduce((a, c) => a + c); 
+				    			+ f.reduce((a, c) => a + c) 
+				    			+ r.reduce((a, c) => a + c) 
+				    			+ c.reduce((a, c) => a + c); 
     			//状态饼
     			statePieOption.series[0].data = [
     				{name:'全部', value:sum}
     			];
     			statePieOption.series[1].data = [
     				{name:'开启',value:o.reduce((a, c) => a + c)},
-    				{name:'解决',value:r.reduce((a, c) => a + c)},
-    				{name:'驳回',value:f.reduce((a, c) => a + c)},
+    				{name:'解决',value:f.reduce((a, c) => a + c)},
+    				{name:'驳回',value:r.reduce((a, c) => a + c)},
     				{name:'关闭',value:c.reduce((a, c) => a + c)}
     			];
     			
@@ -211,17 +211,17 @@
     				{name:'全部', value:sum}
     			];
     			levelPieOption.series[1].data = [
-    				{name:'错误',value:o[0]+r[0]+f[0]+c[0]},
-    				{name:'严重',value:o[1]+r[1]+f[1]+c[1]},
-    				{name:'一般',value:o[2]+r[2]+f[2]+c[2]},
-    				{name:'建议',value:o[3]+r[3]+f[3]+c[3]}
+    				{name:'错误',value:o[0]+f[0]+r[0]+c[0]},
+    				{name:'严重',value:o[1]+f[1]+r[1]+c[1]},
+    				{name:'一般',value:o[2]+f[2]+r[2]+c[2]},
+    				{name:'建议',value:o[3]+f[3]+r[3]+c[3]}
     			];
     			levelPieCharts.setOption(levelPieOption);
     			//线图
-    			lineChartsOption.series[0].data = [o[0],r[0],f[0],c[0]];
-    			lineChartsOption.series[1].data = [o[1],r[1],f[1],c[1]];
-    			lineChartsOption.series[2].data = [o[2],r[2],f[2],c[2]];
-    			lineChartsOption.series[3].data = [o[3],r[3],f[3],c[3]];
+    			lineChartsOption.series[0].data = [o[0],f[0],r[0],c[0]];
+    			lineChartsOption.series[1].data = [o[1],f[1],r[1],c[1]];
+    			lineChartsOption.series[2].data = [o[2],f[2],r[2],c[2]];
+    			lineChartsOption.series[3].data = [o[3],f[3],r[3],c[3]];
 		        lineCharts.setOption(lineChartsOption);
     		}else{
     			layer.alert(res.msg);
