@@ -31,3 +31,6 @@ hs_err_pid*
 /.settings/
 .factorypath
 /bugfiles/
+/bin/
+favicon.ico
+application-prod.properties
