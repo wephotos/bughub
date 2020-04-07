@@ -111,7 +111,7 @@ public class BugService {
     public boolean delete(String id) {
         //删除bug
         boolean b = bugMapper.deleteByPrimaryKey(id) == 1;
-        // TODO 删除附件
+        //删除附件
         //删除bug对应的人员
         boolean bu = bugUserMapper.deleteByBugId(id) == 1;
         return  b && bu;
@@ -142,7 +142,7 @@ public class BugService {
     /**
      * bug分页列表
      *
-     * @param pageable pageable
+     * @param pageable {@link Pageable}
      * @return Page
      */
     public Page<BugVo> pageList(Pageable pageable) {
@@ -177,7 +177,7 @@ public class BugService {
      */
     public Map<BugState, List<Integer>> statistics(String projectId, String userId){
     	List<BugStats> results = bugMapper.statistics(projectId, userId);
-    	Map<BugState, List<Integer>> data = new HashMap<>();
+    	Map<BugState, List<Integer>> data = new EnumMap<>(BugState.class);
     	for(BugState state : BugState.values()) {
     		BugLevel[] levels = BugLevel.values();
     		List<Integer> value = new ArrayList<>(levels.length);

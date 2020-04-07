@@ -120,18 +120,7 @@
     <where>
       <include refid="pageCond"/>
     </where>
-    order by
-    <choose>
-      <when test="sortField != null">
-        ${sortField}
-        <if test="sortDirection != null">
-          ${sortDirection}
-        </if>
-      </when>
-      <otherwise>
-        createTime desc
-      </otherwise>
-    </choose>
+    <include refid="orderBy"></include>
     LIMIT #{start}, #{limit}
   </select>
 
@@ -162,19 +151,7 @@
     <where>
 	    <include refid="pageCondForManager" />
     </where>
-    order by
-    b.state ASC, b.`level` DESC
-    <choose>
-      <when test="sortField != null">
-        ,${sortField}
-        <if test="sortDirection != null">
-          ${sortDirection}
-        </if>
-      </when>
-      <otherwise>
-        ,createTime desc
-      </otherwise>
-    </choose>
+    <include refid="orderBy"></include>
     LIMIT #{start}, #{limit}
   </select>
 
@@ -188,35 +165,38 @@
 	    <include refid="pageCondForManager" />
     </where>
   </select>
-
+  <!-- 排序 -->
+  <sql id="orderBy">
+  	order by
+    <choose>
+      <when test="sortField != null">
+        ${sortField}
+        <if test="sortDirection != null">
+          ${sortDirection}
+        </if>
+      </when>
+      <otherwise>
+        b.state ASC, b.`level` DESC, b.createTime desc
+      </otherwise>
+    </choose>
+  </sql>
+  <!-- 普通人员查询条件 -->
   <sql id="pageCond">
     b.id = bu.bugId
     AND
 	bu.userId = #{userId,jdbcType=CHAR}
-    <if test="condition != null" >
-	    AND
-	    b.projectId = #{condition.projectId,jdbcType=CHAR}
-	    <if test="condition.level != null and condition.level != 0" >
-          AND b.`level` = #{condition.level}
-        </if>
-        <if test="condition.state != null and condition.state !=''" >
-          AND b.state = #{condition.state}
-        </if>
-        <if test="condition.word != null and condition.word !=''">
-          AND (
-	        b.title LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
-        	OR
-        	b.description LIKE CONCAT('%',#{condition.word,jdbcType=VARCHAR},'%')
-        )
-        </if>
-    </if>
+    <include refid="queryCond"></include>
   </sql>
-
+  <!-- 管理人员查询条件 -->
   <sql id="pageCondForManager">
   	b.projectId = pu.projectId
     AND
     pu.userId = #{userId,jdbcType=CHAR}
-    <if test="condition != null">
+    <include refid="queryCond"></include>
+  </sql>
+  <!-- 搜索条件 -->
+  <sql id="queryCond">
+  	<if test="condition != null">
       AND
 	  b.projectId = #{condition.projectId,jdbcType=CHAR}
       <if test="condition.level != null and condition.level != 0" >
