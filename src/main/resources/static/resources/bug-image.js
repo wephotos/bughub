@@ -40,8 +40,7 @@ function onPasteClipboardImage(event, callback) {
 	if (!clipboardData.items) {
 		return false;
 	}
-	//阻止冒泡
-	event.preventDefault();
+	
 	var blob, items = clipboardData.items;
 	for (var i = 0; i < items.length; i++) {
 		if (items[i].type.indexOf("image") !== -1) {
@@ -49,6 +48,8 @@ function onPasteClipboardImage(event, callback) {
 		}
 	}
 	if (blob) {
+		//阻止冒泡
+		event.preventDefault();
 		var reader = new FileReader();
 		reader.onload = function(event) {
 			//图片的Base64编码字符串
